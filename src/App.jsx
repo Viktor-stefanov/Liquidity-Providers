@@ -9,7 +9,9 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
-        <Route path="/" element={<Pairs />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<Pairs />} />
+        </Route>
         <Route path="/login" element={<Login />} />
       </Routes>
     </AuthProvider>
