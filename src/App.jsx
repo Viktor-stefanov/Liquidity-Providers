@@ -1,17 +1,17 @@
 import React from "react";
-import { RouterProvider } from "react-router-dom";
-import router from "./router/router";
+import { Routes, Route } from "react-router-dom";
+import Pairs from "./components/Pairs";
+import Login from "./components/Login";
+import AuthProvider, { useAuth } from "./components/AuthProvider";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-export default class App extends React.Component {
-  constructor(props) {
-    super(props);
-  }
-
-  render() {
-    return (
-      <React.StrictMode>
-        <RouterProvider router={router} />
-      </React.StrictMode>
-    );
-  }
+export default function App() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/" element={<Pairs />} />
+        <Route path="/login" element={<Login />} />
+      </Routes>
+    </AuthProvider>
+  );
 }

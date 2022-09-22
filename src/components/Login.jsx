@@ -1,30 +1,14 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import Metamask from "../utils/metamask.js";
+import { useAuth } from "./AuthProvider";
 
-class Login extends React.Component {
-  constructor(props) {
-    super(props);
-    this.connectWallet = this.connectWallet.bind(this);
-  }
+export default function Login() {
+  const { onLogin } = useAuth();
 
-  async connectWallet() {
-    await Metamask.connectWallet();
-    this.props.navigate("/working");
-  }
+  return (
+    <>
+      <h1>Welcome to UniClone</h1>
 
-  render() {
-    return (
-      <>
-        <h1>Welcome to UniClone</h1>
-
-        <button onClick={this.connectWallet}>Connect Metamask</button>
-      </>
-    );
-  }
-}
-
-export default function WithNavigate(props) {
-  let navigate = useNavigate();
-  return <Login {...props} navigate={navigate} />;
+      <button onClick={onLogin}>Connect Wallet</button>
+    </>
+  );
 }

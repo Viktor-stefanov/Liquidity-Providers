@@ -1,11 +1,8 @@
 import React from "react";
+import { useAuth } from "./AuthProvider";
 
-class AssetPairs extends React.Component {
-  constructor(props) {
-    super(props);
-  }
+export default function AssetPairs() {
+  console.log(useAuth());
 
-  render() {
-    return <></>;
-  }
+  return <h1>Pairs Page</h1>;
 }
