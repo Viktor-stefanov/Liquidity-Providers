@@ -1,8 +1,10 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
+import Pool from "./components/Pool";
 import Pairs from "./components/Pairs";
 import Login from "./components/Login";
-import AuthProvider, { useAuth } from "./components/AuthProvider";
+import Header from "./components/Header";
+import AuthProvider from "./components/AuthProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
@@ -10,9 +12,13 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<Pairs />} />
+          <Route path="/" />
         </Route>
         <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Header />}>
+          <Route path="/pool" element={<Pool />} />
+          <Route path="/pairs" element={<Pairs />} />
+        </Route>
       </Routes>
     </AuthProvider>
   );

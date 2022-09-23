@@ -7,16 +7,23 @@ const AuthContext = createContext({});
 export default function AuthProvider({ children }) {
   const navigate = useNavigate();
   const [isLoggedIn, updateIsLoggedIn] = useState(null);
+  const [walletInfo, updateWalletInfo] = useState({});
 
   const handleLogin = async () => {
-    console.log("handling login...");
     const walletConnected = await Metamask.connectWallet();
     updateIsLoggedIn(walletConnected);
-    navigate("/");
+    updateWalletInfo({
+      network: Metamask.network,
+      account: Metamask.account,
+      accounts: Metamask.accounts,
+      balance: Metamask.balance,
+    });
+    navigate("/pairs");
   };
 
   const auth = {
     isLoggedIn,
+    walletInfo,
     onLogin: handleLogin,
   };
 
