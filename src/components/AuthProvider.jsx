@@ -13,7 +13,8 @@ export default function AuthProvider({ children }) {
     const walletConnected = await Metamask.connectWallet();
     updateIsLoggedIn(walletConnected);
     updateWalletInfo({
-      network: Metamask.network,
+      networkName: Metamask.network.name,
+      chainId: Metamask.network.chainId,
       account: Metamask.account,
       accounts: Metamask.accounts,
       balance: Metamask.balance,

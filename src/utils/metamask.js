@@ -4,7 +4,7 @@ const Wallet = {
   accounts: [],
   account: null,
   balance: null,
-  network: null,
+  network: {},
   walletConnected: false,
 
   connectWallet: async () => {
@@ -15,7 +15,8 @@ const Wallet = {
         Wallet.accounts = await provider.send("eth_requestAccounts", []);
         Wallet.account = Wallet.accounts[0];
         Wallet.balance = parseInt(await provider.getBalance(Wallet.account));
-        Wallet.network = (await provider.getNetwork()).name;
+        const { chainId, name } = provider.network;
+        Wallet.network = { name, chainId };
 
         return true;
       } catch {
