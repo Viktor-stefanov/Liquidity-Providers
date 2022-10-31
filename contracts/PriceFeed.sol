@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: no-license
 pragma solidity 0.8.17;
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV2V3Interface.sol";
 
 contract PriceFeed {
     mapping(address => AggregatorV3Interface) priceFeeds;

@@ -1,17 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PoolForm from "./PoolForm";
 
 export default function Pool() {
-<<<<<<< HEAD
-  function onSubmit(formData) {
-    const { fromCoin, toCoin, fromCoinAmount, toCoinAmount, fee } = formData;
-    console.log(fromCoin, toCoin, fromCoinAmount, toCoinAmount, fee);
-    
-    // now fetch user balances and compare if userbalance >= fromCoinAmount and toCoinAmount
-  }
-
-  return <PoolForm onSubmit={onSubmit} />;
-=======
   const [pool, setPool] = useState(false);
   const [marketData, setMarketData] = useState([]);
   const [fromCoin, setFromCoin] = useState(null);
@@ -36,8 +26,10 @@ export default function Pool() {
     let fromCoinPrice, toCoinPrice;
 
     marketData.forEach((coinData) => {
-      if (coinData.name.toUpperCase() === fromCoin) fromCoinPrice = coinData.price;
-      else if (coinData.name.toUpperCase() === toCoin) toCoinPrice = coinData.price;
+      if (coinData.name.toUpperCase() === fromCoin)
+        fromCoinPrice = coinData.price;
+      else if (coinData.name.toUpperCase() === toCoin)
+        toCoinPrice = coinData.price;
     });
     const ratio = fromCoinPrice / toCoinPrice;
 
@@ -88,13 +80,17 @@ export default function Pool() {
           {fromCoin && (
             <div>
               <p>Enter amount of {fromCoin}: </p>
-              <input type="number" onChange={(e) => calcToAmount(e.target.value)} />
+              <input
+                type="number"
+                onChange={(e) => calcToAmount(e.target.value)}
+              />
               {toCoinAmount && (
                 <div>
                   <input type="number" placeholder={toCoinAmount} disabled />
                   <p>
-                    Deposit {fromCoinAmount} {fromCoin} and {toCoinAmount} {toCoin} to become a
-                    liquidity provider and receive a 0.2% fee whenever your assets are swapped.
+                    Deposit {fromCoinAmount} {fromCoin} and {toCoinAmount}{" "}
+                    {toCoin} to become a liquidity provider and receive a 0.2%
+                    fee whenever your assets are swapped.
                   </p>
                   <button>Deposit</button>
                 </div>
@@ -105,5 +101,4 @@ export default function Pool() {
       )}
     </>
   );
->>>>>>> 9e4cb5b8ce51dae64ea57e5bf8b986beff822faa
 }
