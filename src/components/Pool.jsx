@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import PoolForm from "./PoolForm";
+import { provideLiquidity } from "../utils/contracts";
 
 export default function Pool() {
   const [pool, setPool] = useState(false);
@@ -8,14 +8,13 @@ export default function Pool() {
   const [fromCoinAmount, setFromCoinAmount] = useState(null);
   const [toCoin, setToCoin] = useState(null);
   const [toCoinAmount, setToCoinAmount] = useState(null);
+  const [depositing, setDepositing] = useState(false);
 
   useEffect(() => {
     async function getCoinsData() {
-      //const coinData = await getMarketData();
       const coinData = [
-        { name: "ETH", price: 1200 },
+        { name: "ETH", price: 1500 },
         { name: "USDC", price: 1 },
-        { name: "USDT", price: 1 },
       ];
       setMarketData(coinData);
     }
@@ -26,15 +25,23 @@ export default function Pool() {
     let fromCoinPrice, toCoinPrice;
 
     marketData.forEach((coinData) => {
-      if (coinData.name.toUpperCase() === fromCoin)
-        fromCoinPrice = coinData.price;
-      else if (coinData.name.toUpperCase() === toCoin)
-        toCoinPrice = coinData.price;
+      if (coinData.name.toUpperCase() === fromCoin) fromCoinPrice = coinData.price;
+      else if (coinData.name.toUpperCase() === toCoin) toCoinPrice = coinData.price;
     });
     const ratio = fromCoinPrice / toCoinPrice;
 
     setFromCoinAmount(fromAmount);
     setToCoinAmount(fromAmount * ratio);
+  }
+
+  async function startPooling() {
+    setDepositing(true);
+    await provideLiquidity(fromCoin, fromCoinAmount, toCoin, toCoinAmount);
+    setFromCoin(null);
+    setToCoin(null);
+    setFromCoinAmount(null);
+    setToCoinAmount(null);
+    setDepositing(false);
   }
 
   return (
@@ -49,50 +56,47 @@ export default function Pool() {
             name="fromCoin"
             onChange={(e) => setFromCoin(e.target.value.toUpperCase())}
             defaultValue="init"
+            disabled={depositing}
           >
             <option value="init" disabled></option>
             <option value="ETH">ETH</option>
             <option value="USDT">USDT</option>
             <option value="USDC">USDC</option>
-            {/*{marketData.map((coin, index) => (
-              <option value={coin.symbol} key={index}>
-                {coin.symbol.toUpperCase()}
-              </option>
-            ))}*/}
           </select>
           <br />
           <select
             name="toCoin"
             onChange={(e) => setToCoin(e.target.value.toUpperCase())}
             defaultValue="init"
+            disabled={depositing}
           >
             <option value="init" disabled></option>
             <option value="ETH">ETH</option>
             <option value="USDT">USDT</option>
             <option value="USDC">USDC</option>
-            {/*{marketData.map((coin, index) => (
-              <option value={coin.symbol} key={index}>
-                {coin.symbol.toUpperCase()}
-              </option>
-            ))}*/}
           </select>
 
-          {fromCoin && (
+          {fromCoin && toCoin && (
             <div>
               <p>Enter amount of {fromCoin}: </p>
               <input
                 type="number"
                 onChange={(e) => calcToAmount(e.target.value)}
+                disabled={depositing}
               />
               {toCoinAmount && (
                 <div>
                   <input type="number" placeholder={toCoinAmount} disabled />
                   <p>
-                    Deposit {fromCoinAmount} {fromCoin} and {toCoinAmount}{" "}
-                    {toCoin} to become a liquidity provider and receive a 0.2%
-                    fee whenever your assets are swapped.
+                    Deposit {fromCoinAmount} {fromCoin} and {toCoinAmount} {toCoin} to become a
+                    liquidity provider and receive a 0.2% fee whenever your assets are swapped.
                   </p>
-                  <button>Deposit</button>
+                  <button onClick={startPooling} disabled={depositing}>
+                    Deposit
+                  </button>
+                  {depositing && (
+                    <p>Please open your web wallet and await for the transactions to complete.</p>
+                  )}
                 </div>
               )}
             </div>

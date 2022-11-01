@@ -24,7 +24,7 @@ contract EthToUsdc is ERC20 {
             "Insufficient ERC20 funds."
         );
 
-        // ETH price / USDC price -> how many USDC should there be per ETH
+        console.log(address(usdcContract));
         uint256 usdcPrice = uint256(priceFeed.getPrice(address(usdcContract)));
         uint256 ethPrice = uint256(
             priceFeed.getPrice(0xB06c856C8eaBd1d8321b687E188204C1018BC4E5)
@@ -48,6 +48,10 @@ contract EthToUsdc is ERC20 {
 
         ethPool += msg.value;
         tokenPool += tokensAmount;
+    }
+
+    function test() external {
+        usdcContract.transferFrom(msg.sender, address(this), 100);
     }
 
     receive() external payable {}

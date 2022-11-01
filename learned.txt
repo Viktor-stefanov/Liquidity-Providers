@@ -1,1 +1,1 @@
-Uniswap Factory - lets the users ADD an ERC20 token pair.
+Uniswap Factory - lets the users ADD an ERC20 token pair by deploying a custom sc.
