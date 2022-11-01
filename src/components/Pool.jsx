@@ -15,23 +15,29 @@ export default function Pool() {
       const coinData = [
         { name: "ETH", price: 1500 },
         { name: "USDC", price: 1 },
+        { name: "USDT", price: 1 },
       ];
       setMarketData(coinData);
     }
     getCoinsData();
   }, []);
 
-  function calcToAmount(fromAmount) {
+  function calcOtherAmount(amount, target) {
     let fromCoinPrice, toCoinPrice;
-
     marketData.forEach((coinData) => {
       if (coinData.name.toUpperCase() === fromCoin) fromCoinPrice = coinData.price;
       else if (coinData.name.toUpperCase() === toCoin) toCoinPrice = coinData.price;
     });
-    const ratio = fromCoinPrice / toCoinPrice;
 
-    setFromCoinAmount(fromAmount);
-    setToCoinAmount(fromAmount * ratio);
+    if (target === "to") {
+      const ratio = fromCoinPrice / toCoinPrice;
+      setFromCoinAmount(amount);
+      setToCoinAmount(amount * ratio);
+    } else {
+      const ratio = toCoinPrice / fromCoinPrice;
+      setFromCoinAmount(amount * ratio);
+      setToCoinAmount(amount);
+    }
   }
 
   async function startPooling() {
@@ -81,12 +87,19 @@ export default function Pool() {
               <p>Enter amount of {fromCoin}: </p>
               <input
                 type="number"
-                onChange={(e) => calcToAmount(e.target.value)}
+                onChange={(e) => calcOtherAmount(e.target.value, "to")}
                 disabled={depositing}
+                value={fromCoinAmount || ""}
               />
-              {toCoinAmount && (
+              <br />
+              <input
+                type="number"
+                onChange={(e) => calcOtherAmount(e.target.value, "from")}
+                disabled={depositing}
+                value={toCoinAmount || ""}
+              />
+              {fromCoinAmount && toCoinAmount && (
                 <div>
-                  <input type="number" placeholder={toCoinAmount} disabled />
                   <p>
                     Deposit {fromCoinAmount} {fromCoin} and {toCoinAmount} {toCoin} to become a
                     liquidity provider and receive a 0.2% fee whenever your assets are swapped.
