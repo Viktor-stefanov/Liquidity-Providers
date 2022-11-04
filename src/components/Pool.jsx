@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { provideLiquidity } from "../utils/contracts";
+import { provideLiquidity, getTokenPrices, estimateDeposit } from "../utils/contracts";
 
 export default function Pool() {
   const [pool, setPool] = useState(false);
@@ -8,27 +8,30 @@ export default function Pool() {
   const [fromCoinAmount, setFromCoinAmount] = useState(null);
   const [toCoin, setToCoin] = useState(null);
   const [toCoinAmount, setToCoinAmount] = useState(null);
+  const [fromCoinPrice, setFromCoinPrice] = useState(null);
+  const [toCoinPrice, setToCoinPrice] = useState(null);
   const [depositing, setDepositing] = useState(false);
 
+  async function getCoinsData() {
+    setMarketData(await getTokenPrices());
+  }
+
   useEffect(() => {
-    async function getCoinsData() {
-      const coinData = [
-        { name: "ETH", price: 1500 },
-        { name: "USDC", price: 1 },
-        { name: "USDT", price: 1 },
-      ];
-      setMarketData(coinData);
+    async function estimate() {
+      if (fromCoin && toCoin) {
+        const [fcEstimate, tcEstimate] = await estimateDeposit(fromCoin, toCoin);
+        setFromCoinPrice(fcEstimate);
+        setToCoinPrice(tcEstimate);
+      }
     }
+    estimate();
+  }, [toCoin]);
+
+  useEffect(() => {
     getCoinsData();
   }, []);
 
   function calcOtherAmount(amount, target) {
-    let fromCoinPrice, toCoinPrice;
-    marketData.forEach((coinData) => {
-      if (coinData.name.toUpperCase() === fromCoin) fromCoinPrice = coinData.price;
-      else if (coinData.name.toUpperCase() === toCoin) toCoinPrice = coinData.price;
-    });
-
     if (target === "to") {
       const ratio = fromCoinPrice / toCoinPrice;
       setFromCoinAmount(amount);
@@ -43,8 +46,6 @@ export default function Pool() {
   async function startPooling() {
     setDepositing(true);
     await provideLiquidity(fromCoin, fromCoinAmount, toCoin, toCoinAmount);
-    setFromCoin(null);
-    setToCoin(null);
     setFromCoinAmount(null);
     setToCoinAmount(null);
     setDepositing(false);
@@ -65,9 +66,11 @@ export default function Pool() {
             disabled={depositing}
           >
             <option value="init" disabled></option>
-            <option value="ETH">ETH</option>
-            <option value="USDT">USDT</option>
-            <option value="USDC">USDC</option>
+            {marketData.map((coinData, index) => (
+              <option value={coinData.name} key={index}>
+                {coinData.name}
+              </option>
+            ))}
           </select>
           <br />
           <select
@@ -77,9 +80,11 @@ export default function Pool() {
             disabled={depositing}
           >
             <option value="init" disabled></option>
-            <option value="ETH">ETH</option>
-            <option value="USDT">USDT</option>
-            <option value="USDC">USDC</option>
+            {marketData.map((coinData, index) => (
+              <option value={coinData.name} key={index}>
+                {coinData.name}
+              </option>
+            ))}
           </select>
 
           {fromCoin && toCoin && (
@@ -91,7 +96,7 @@ export default function Pool() {
                 disabled={depositing}
                 value={fromCoinAmount || ""}
               />
-              <br />
+              <p>Enter amount of {toCoin}: </p>
               <input
                 type="number"
                 onChange={(e) => calcOtherAmount(e.target.value, "from")}
@@ -102,7 +107,7 @@ export default function Pool() {
                 <div>
                   <p>
                     Deposit {fromCoinAmount} {fromCoin} and {toCoinAmount} {toCoin} to become a
-                    liquidity provider and receive a 0.2% fee whenever your assets are swapped.
+                    liquidity provider.
                   </p>
                   <button onClick={startPooling} disabled={depositing}>
                     Deposit

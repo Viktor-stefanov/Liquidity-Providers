@@ -21,8 +21,8 @@ contract PriceFeed {
         }
     }
 
-    function getPrice(address _tokenContract) public view returns (int256) {
+    function getPrice(address _tokenContract) public view returns (uint256) {
         (, int256 price, , , ) = priceFeeds[_tokenContract].latestRoundData();
-        return price;
+        return uint256(price);
     }
 }
