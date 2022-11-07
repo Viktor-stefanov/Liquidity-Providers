@@ -1,4 +1,4 @@
-Rounding error for UCMC - ETH. 
-
+1. Get symbol name function selector error
+2. Rounding error for UCMC - ETH. 
 
 ? Can you deplete a pair pool ?

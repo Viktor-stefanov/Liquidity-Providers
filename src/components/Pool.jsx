@@ -19,9 +19,9 @@ export default function Pool() {
   useEffect(() => {
     async function estimate() {
       if (fromCoin && toCoin) {
-        const [fcEstimate, tcEstimate] = await estimateDeposit(fromCoin, toCoin);
-        setFromCoinPrice(fcEstimate);
-        setToCoinPrice(tcEstimate);
+        const [fcPrice, tcPrice] = await estimateDeposit(fromCoin, toCoin);
+        setFromCoinPrice(fcPrice);
+        setToCoinPrice(tcPrice);
       }
     }
     estimate();

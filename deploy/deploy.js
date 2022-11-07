@@ -39,6 +39,11 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   await deploy("EthToERC20", {
     from: deployer,
     log: true,
-    args: [[usdc.address, usdt.address], pf.address],
+    args: [
+      [usdt.address, usdc.address, ethMock.address, usdt.address, ethMock.address, usdc.address],
+      ["UTMC", "UCMC", "ETH", "UTMC", "ETH", "UCMC"],
+      pf.address,
+    ],
+    gasLimit: 3 * 10 ** 6,
   });
 };

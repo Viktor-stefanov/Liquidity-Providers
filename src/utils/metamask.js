@@ -14,7 +14,7 @@ const Wallet = {
         Wallet.walletConnected = true;
         Wallet.accounts = await provider.send("eth_requestAccounts", []);
         Wallet.account = Wallet.accounts[0];
-        Wallet.balance = parseInt(await provider.getBalance(Wallet.account));
+        Wallet.balance = ethers.utils.formatEther(await provider.getBalance(Wallet.account));
         const { chainId, name } = provider.network;
         Wallet.network = { name, chainId };
 

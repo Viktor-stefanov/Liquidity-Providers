@@ -6,43 +6,48 @@ import "./PriceFeed.sol";
 
 contract EthToERC20 is ERC20 {
     PriceFeed priceFeed;
-    mapping(address => pairPool) erc20Contracts;
+    mapping(address => mapping(address => pairPool)) tokenPools;
     address[] contractsArr;
 
     struct pairPool {
-        string symbol;
-        uint256 ethAmount;
-        uint256 tokenAmount;
-        uint256 ethSeed; // we need these 2 fields because they tell us what the price
-        uint256 tokenSeed; // should be and help us rebalance the pools later
+        string token1;
+        string token2;
+        uint256 token1Amount;
+        uint256 token2Amount;
+        uint256 token1Seed;
+        uint256 token2Seed;
         bool created;
     }
 
-    modifier contractAvailable(address _contract) {
+    modifier poolCreated(address _token1, address _token2) {
         require(
-            erc20Contracts[_contract].created,
+            tokenPools[_token1][_token2].created,
             "There is no such token contract YET deployed in our system."
         );
         _;
     }
 
-    modifier hasTokens(address _contract, uint256 _tokenAmount) {
+    modifier hasTokens(address _contract, uint256 _token2Amount) {
         require(
-            ERC20(_contract).balanceOf(msg.sender) >= _tokenAmount,
+            ERC20(_contract).balanceOf(msg.sender) >= _token2Amount,
             "Insufficient ERC20 funds."
         );
         _;
     }
 
-    constructor(address[] memory _erc20Contracts, address _priceFeed)
-        payable
-        ERC20("EthToERC20", "EERC")
-    {
-        for (uint256 i = 0; i < _erc20Contracts.length; i++) {
-            address tokenContract = _erc20Contracts[i];
-            contractsArr.push(tokenContract);
-            erc20Contracts[tokenContract] = pairPool(
-                ERC20(tokenContract).symbol(),
+    constructor(
+        address[] memory _tokenPools,
+        string[] memory _tokenSymbols,
+        address _priceFeed
+    ) payable ERC20("EthToERC20", "EERC") {
+        for (uint256 i = 0; i < _tokenPools.length; i += 2) {
+            address token1Contract = _tokenPools[i];
+            address token2Contract = _tokenPools[i + 1];
+            contractsArr.push(token1Contract);
+            contractsArr.push(token2Contract);
+            tokenPools[token1Contract][token2Contract] = pairPool(
+                _tokenSymbols[i],
+                _tokenSymbols[i + 1],
                 0,
                 0,
                 0,
@@ -53,15 +58,17 @@ contract EthToERC20 is ERC20 {
         priceFeed = PriceFeed(_priceFeed);
     }
 
-    function addToken(address _erc20Contract) external {
+    function addToken(address token1Contract, address token2Contract) external {
         require(
-            erc20Contracts[_erc20Contract].created == false,
+            tokenPools[token1Contract][token2Contract].created == false,
             "This token contract is already in the system."
         );
 
-        contractsArr.push(_erc20Contract);
-        erc20Contracts[_erc20Contract] = pairPool(
-            ERC20(_erc20Contract).symbol(),
+        contractsArr.push(token1Contract);
+        contractsArr.push(token2Contract);
+        tokenPools[token1Contract][token2Contract] = pairPool(
+            ERC20(token1Contract).symbol(),
+            ERC20(token2Contract).symbol(),
             0,
             0,
             0,
@@ -70,10 +77,14 @@ contract EthToERC20 is ERC20 {
         );
     }
 
-    function depositEthToERC20(address _tokenContract, uint256 _tokenAmount)
+    function depositEthToERC20(
+        address _ethContract,
+        address _tokenContract,
+        uint256 _tokenAmount
+    )
         external
         payable
-        contractAvailable(_tokenContract)
+        poolCreated(_ethContract, _tokenContract)
         hasTokens(_tokenContract, _tokenAmount)
     {
         ERC20(_tokenContract).transferFrom(
@@ -82,117 +93,177 @@ contract EthToERC20 is ERC20 {
             _tokenAmount
         );
 
-        erc20Contracts[_tokenContract].ethAmount += msg.value;
-        erc20Contracts[_tokenContract].tokenAmount += _tokenAmount;
-        if (erc20Contracts[_tokenContract].ethSeed == 0) {
-            erc20Contracts[_tokenContract].ethSeed = msg.value;
-            erc20Contracts[_tokenContract].tokenSeed = _tokenAmount;
+        tokenPools[_ethContract][_tokenContract].token1Amount += msg.value;
+        tokenPools[_ethContract][_tokenContract].token2Amount += _tokenAmount;
+        if (tokenPools[_ethContract][_tokenContract].token1Seed == 0) {
+            tokenPools[_ethContract][_tokenContract].token1Seed = msg.value;
+            tokenPools[_ethContract][_tokenContract].token2Seed = _tokenAmount;
         }
     }
 
-    function ethToERC20Swap(address _tokenContract)
+    function depositERC20ToERC20(
+        address _token1Contract,
+        address _token2Contract,
+        uint256 _token1Amount,
+        uint256 _token2Amount
+    )
         external
-        payable
-        contractAvailable(_tokenContract)
+        poolCreated(_token1Contract, _token2Contract)
+        hasTokens(_token1Contract, _token1Amount)
+        hasTokens(_token2Contract, _token2Amount)
     {
-        pairPool memory pool = erc20Contracts[_tokenContract];
-        uint256 fee = msg.value / 500; // 0.2% fee
-        uint256 invariant = pool.ethAmount * pool.tokenAmount;
-        uint256 newEthAmount = pool.ethAmount + msg.value;
-        uint256 newTokenAmount = invariant / (newEthAmount - fee);
+        tokenPools[_token1Contract][_token2Contract]
+            .token1Amount += _token1Amount;
+        tokenPools[_token1Contract][_token2Contract]
+            .token2Amount += _token2Amount;
+        if (tokenPools[_token1Contract][_token2Contract].token1Seed == 0) {
+            tokenPools[_token1Contract][_token2Contract]
+                .token1Seed = _token1Amount;
+            tokenPools[_token1Contract][_token2Contract]
+                .token2Seed = _token2Amount;
+        }
 
-        pool.ethAmount = newEthAmount;
-        pool.tokenAmount = newTokenAmount;
-        erc20Contracts[_tokenContract] = pool;
-
-        ERC20(_tokenContract).transferFrom(
-            address(this),
+        ERC20(_token1Contract).transferFrom(
             msg.sender,
-            pool.tokenAmount - newTokenAmount
+            address(this),
+            _token1Amount
+        );
+        ERC20(_token2Contract).transferFrom(
+            msg.sender,
+            address(this),
+            _token2Amount
         );
     }
 
-    function ERC20ToEthSwap(address _tokenContract, uint256 _tokenAmount)
+    function ethToERC20Swap(address _ethContract, address _tokenContract)
         external
-        contractAvailable(_tokenContract)
+        payable
+        poolCreated(_ethContract, _tokenContract)
     {
-        require(
-            ERC20(_tokenContract).balanceOf(msg.sender) >= _tokenAmount,
-            "Insufficient ERC20 balance."
-        );
-        pairPool memory pool = erc20Contracts[_tokenContract];
-        uint256 fee = _tokenAmount / 500;
-        uint256 invariant = pool.ethAmount * pool.tokenAmount;
-        uint256 newTokenPool = pool.tokenAmount + _tokenAmount;
-        uint256 newEthPool = invariant / (newTokenPool - fee);
-        uint256 ethOut = pool.ethAmount - newEthPool;
+        pairPool memory pool = tokenPools[_ethContract][_tokenContract];
+        uint256 fee = msg.value / 500; // 0.2% fee
+        uint256 invariant = pool.token1Amount * pool.token2Amount;
+        uint256 newEthAmount = pool.token1Amount + msg.value;
+        uint256 newTokenAmount = invariant / (newEthAmount - fee);
+        uint256 tokensOut = pool.token2Amount - newTokenAmount;
 
-        pool.ethAmount = newEthPool;
-        pool.tokenAmount = newTokenPool;
-        erc20Contracts[_tokenContract] = pool;
+        pool.token1Amount = newEthAmount;
+        pool.token2Amount = newTokenAmount;
+        tokenPools[_ethContract][_tokenContract] = pool;
+
+        ERC20(_tokenContract).transfer(msg.sender, tokensOut);
+    }
+
+    function ERC20ToEthSwap(
+        address _ethContract,
+        address _tokenContract,
+        uint256 _token2Amount
+    ) external poolCreated(_ethContract, _tokenContract) {
+        pairPool memory pool = tokenPools[_ethContract][_tokenContract];
+        uint256 fee = _token2Amount / 500;
+        uint256 invariant = pool.token1Amount * pool.token2Amount;
+        uint256 newTokenPool = pool.token2Amount + _token2Amount;
+        uint256 newEthPool = invariant / (newTokenPool - fee);
+        uint256 ethOut = pool.token1Amount - newEthPool;
+
+        pool.token1Amount = newEthPool;
+        pool.token2Amount = newTokenPool;
+        tokenPools[_ethContract][_tokenContract] = pool;
 
         ERC20(_tokenContract).transferFrom(
             msg.sender,
             address(this),
-            _tokenAmount
+            _token2Amount
         );
 
         (bool success, ) = msg.sender.call{value: ethOut}("");
         require(success, "Could not send eth.");
     }
 
-    function ERC20ToEth(address _tokenContract, uint256 _tokenAmount)
-        external
-    {}
+    function ERC20ToERC20Swap(
+        address _token1Contract,
+        address _token2Contract,
+        uint256 _tokenAmount
+    ) external hasTokens(_token1Contract, _tokenAmount) {
+        pairPool memory pool = tokenPools[_token1Contract][_token2Contract];
+        uint256 fee = _tokenAmount / 500;
+        uint256 invariant = pool.token1Amount * pool.token2Amount;
+        uint256 newToken1Pool = pool.token1Amount + _tokenAmount;
+        uint256 newToken2Pool = invariant / (newToken1Pool - fee);
+        uint256 token2Out = pool.token2Amount - newToken2Pool;
 
-    function getRelativePrice(address _tokenContract)
+        pool.token1Amount = newToken1Pool;
+        pool.token2Amount = newToken2Pool;
+        tokenPools[_token1Contract][_token2Contract] = pool;
+
+        ERC20(_token1Contract).transferFrom(
+            msg.sender,
+            address(this),
+            _tokenAmount
+        );
+
+        ERC20(_token2Contract).transfer(msg.sender, token2Out);
+    }
+
+    function getRelativePrice(address _token1Contract, address _token2Contract)
         public
         view
-        returns (uint256, uint256)
+        returns (uint256)
     {
-        pairPool memory pool = erc20Contracts[_tokenContract];
-        if (pool.ethAmount != 0) {
-            uint256 relEthPrice = (pool.tokenAmount * 10**18) / pool.ethAmount;
-            uint256 relTokenPrice = (pool.ethAmount * 10**18) /
-                (pool.tokenAmount * 10**18);
+        require(
+            poolIsSeeded(_token1Contract, _token2Contract),
+            "Pool has not yet been seeded."
+        );
 
-            return (relEthPrice, relTokenPrice);
-        }
+        pairPool memory pool = tokenPools[_token1Contract][_token2Contract];
+        uint256 t1ToT2 = (pool.token2Amount * 10**36) / pool.token1Amount;
+
+        return t1ToT2;
     }
 
     function getContracts() external view returns (address[] memory) {
         return contractsArr;
     }
 
-    function getPool(address _tokenContract)
+    function getPool(address _token1Contract, address _token2Contract)
         external
         view
         returns (pairPool memory)
     {
-        return erc20Contracts[_tokenContract];
+        return tokenPools[_token1Contract][_token2Contract];
     }
 
-    function poolIsSeeded(address _tokenContract) external view returns (bool) {
-        return
-            erc20Contracts[_tokenContract].created &&
-            erc20Contracts[_tokenContract].ethSeed != 0;
+    function poolIsSeeded(address _token1Contract, address _token2Contract)
+        public
+        view
+        returns (bool)
+    {
+        return tokenPools[_token1Contract][_token2Contract].token1Seed != 0;
     }
 
-    function estimateDepositValues(address _tokenContract)
+    function estimateFromToDeposit(
+        address _token1Contract,
+        address _token2Contract
+    ) external view returns (uint256, uint256) {
+        pairPool memory pool = tokenPools[_token1Contract][_token2Contract];
+        uint256 t1ToT2Price = pool.token1Amount == pool.token1Seed
+            ? pool.token1Seed
+            : ((10**18 * pool.token1Seed) / pool.token1Amount) *
+                pool.token1Seed;
+        uint256 t2ToT1Price = pool.token2Amount == pool.token2Seed
+            ? pool.token2Seed
+            : ((10**18 * pool.token2Seed) / pool.token2Amount) *
+                pool.token2Seed;
+
+        return (t1ToT2Price, t2ToT1Price);
+    }
+
+    function getSymbol(address _tokenContract)
         external
         view
-        returns (uint256, uint256)
+        returns (string memory)
     {
-        pairPool memory pool = erc20Contracts[_tokenContract];
-        if (pool.ethAmount > pool.ethSeed) {
-            uint256 growthFactor = (10**18 * pool.ethAmount) / pool.ethSeed;
-            uint256 shrinkFactor = (10**18 * pool.tokenSeed) - pool.tokenAmount;
-            return (growthFactor, shrinkFactor);
-        } else {
-            uint256 growthFactor = (10**18 * pool.ethSeed) / pool.ethAmount;
-            uint256 shrinkFactor = (10**18 * pool.tokenAmount) - pool.tokenSeed;
-            return (growthFactor, shrinkFactor);
-        }
+        return ERC20(_tokenContract).symbol();
     }
 
     receive() external payable {}
