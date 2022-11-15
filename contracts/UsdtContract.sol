@@ -4,7 +4,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract UsdtContract is ERC20 {
     constructor(address _to) ERC20("UsdtMockCoin", "UTMC") {
-        _mint(_to, 100000 ether);
+        _mint(_to, 200000 ether);
     }
 }
-

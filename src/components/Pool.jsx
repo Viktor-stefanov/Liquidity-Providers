@@ -1,53 +1,45 @@
 import React, { useState, useEffect } from "react";
-import { provideLiquidity, getTokenPrices, estimateDeposit } from "../utils/contracts";
+import { provideLiquidity, getTokenPrices, estimateBalancedDeposit } from "../utils/contracts";
 
 export default function Pool() {
   const [pool, setPool] = useState(false);
   const [marketData, setMarketData] = useState([]);
-  const [fromCoin, setFromCoin] = useState(null);
-  const [fromCoinAmount, setFromCoinAmount] = useState(null);
-  const [toCoin, setToCoin] = useState(null);
-  const [toCoinAmount, setToCoinAmount] = useState(null);
-  const [fromCoinPrice, setFromCoinPrice] = useState(null);
-  const [toCoinPrice, setToCoinPrice] = useState(null);
+  const [fromToken, setFromToken] = useState(null);
+  const [fromTokenAmount, setFromTokenAmount] = useState(null);
+  const [toToken, setToToken] = useState(null);
+  const [toTokenAmount, setToTokenAmount] = useState(null);
   const [depositing, setDepositing] = useState(false);
 
-  async function getCoinsData() {
+  async function getTokensData() {
     setMarketData(await getTokenPrices());
   }
 
   useEffect(() => {
-    async function estimate() {
-      if (fromCoin && toCoin) {
-        const [fcPrice, tcPrice] = await estimateDeposit(fromCoin, toCoin);
-        setFromCoinPrice(fcPrice);
-        setToCoinPrice(tcPrice);
-      }
-    }
-    estimate();
-  }, [toCoin]);
-
-  useEffect(() => {
-    getCoinsData();
+    getTokensData();
   }, []);
 
-  function calcOtherAmount(amount, target) {
-    if (target === "to") {
-      const ratio = fromCoinPrice / toCoinPrice;
-      setFromCoinAmount(amount);
-      setToCoinAmount(amount * ratio);
+  async function calcOtherAmount(amount, inputDirection) {
+    if (amount === "") {
+      setFromTokenAmount(null);
+      setToTokenAmount(null);
+      return;
+    }
+
+    const otherAmount = await estimateBalancedDeposit(fromToken, toToken, amount, inputDirection);
+    if (inputDirection === "fromTo") {
+      setFromTokenAmount(amount);
+      setToTokenAmount(otherAmount);
     } else {
-      const ratio = toCoinPrice / fromCoinPrice;
-      setFromCoinAmount(amount * ratio);
-      setToCoinAmount(amount);
+      setToTokenAmount(amount);
+      setFromTokenAmount(otherAmount);
     }
   }
 
   async function startPooling() {
     setDepositing(true);
-    await provideLiquidity(fromCoin, fromCoinAmount, toCoin, toCoinAmount);
-    setFromCoinAmount(null);
-    setToCoinAmount(null);
+    await provideLiquidity(fromToken, fromTokenAmount, toToken, toTokenAmount);
+    setFromTokenAmount(null);
+    setToTokenAmount(null);
     setDepositing(false);
   }
 
@@ -60,53 +52,53 @@ export default function Pool() {
       {pool && (
         <div>
           <select
-            name="fromCoin"
-            onChange={(e) => setFromCoin(e.target.value.toUpperCase())}
+            name="fromToken"
+            onChange={(e) => setFromToken(e.target.value.toUpperCase())}
             defaultValue="init"
             disabled={depositing}
           >
             <option value="init" disabled></option>
-            {marketData.map((coinData, index) => (
-              <option value={coinData.name} key={index}>
-                {coinData.name}
+            {marketData.map((TokenData, index) => (
+              <option value={TokenData.name} key={index}>
+                {TokenData.name}
               </option>
             ))}
           </select>
           <br />
           <select
-            name="toCoin"
-            onChange={(e) => setToCoin(e.target.value.toUpperCase())}
+            name="toToken"
+            onChange={(e) => setToToken(e.target.value.toUpperCase())}
             defaultValue="init"
             disabled={depositing}
           >
             <option value="init" disabled></option>
-            {marketData.map((coinData, index) => (
-              <option value={coinData.name} key={index}>
-                {coinData.name}
+            {marketData.map((TokenData, index) => (
+              <option value={TokenData.name} key={index}>
+                {TokenData.name}
               </option>
             ))}
           </select>
 
-          {fromCoin && toCoin && (
+          {fromToken && toToken && (
             <div>
-              <p>Enter amount of {fromCoin}: </p>
+              <p>Enter amount of {fromToken}: </p>
               <input
                 type="number"
-                onChange={(e) => calcOtherAmount(e.target.value, "to")}
+                onChange={(e) => calcOtherAmount(e.target.value, "fromTo")}
                 disabled={depositing}
-                value={fromCoinAmount || ""}
+                value={fromTokenAmount || ""}
               />
-              <p>Enter amount of {toCoin}: </p>
+              <p>Enter amount of {toToken}: </p>
               <input
                 type="number"
-                onChange={(e) => calcOtherAmount(e.target.value, "from")}
+                onChange={(e) => calcOtherAmount(e.target.value, "toFrom")}
                 disabled={depositing}
-                value={toCoinAmount || ""}
+                value={toTokenAmount || ""}
               />
-              {fromCoinAmount && toCoinAmount && (
+              {fromTokenAmount && toTokenAmount && (
                 <div>
                   <p>
-                    Deposit {fromCoinAmount} {fromCoin} and {toCoinAmount} {toCoin} to become a
+                    Deposit {fromTokenAmount} {fromToken} and {toTokenAmount} {toToken} to become a
                     liquidity provider.
                   </p>
                   <button onClick={startPooling} disabled={depositing}>

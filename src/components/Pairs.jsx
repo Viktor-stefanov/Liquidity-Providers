@@ -15,15 +15,16 @@ export default function Pairs() {
     getTokens();
   }, []);
 
-  async function calcOtherAmount(tokenAmount, other) {
-    const [t1ToT2, t2ToT1] = await getRelativePrice(fromToken, toToken);
-    if (other === "to") {
-      setToTokenAmount(tokenAmount * t1ToT2);
-      setFromTokenAmount(tokenAmount);
-    } else {
-      setFromTokenAmount(tokenAmount * t2ToT1);
-      setToTokenAmount(tokenAmount);
+  async function calcOtherAmount(amount) {
+    if (amount === "") {
+      setFromTokenAmount(null);
+      setToTokenAmount(null);
+      return;
     }
+
+    const equivalentAmount = await getRelativePrice(fromToken, toToken, amount);
+    setFromTokenAmount(amount);
+    setToTokenAmount(equivalentAmount);
   }
 
   async function exchangeTokens() {
@@ -57,7 +58,7 @@ export default function Pairs() {
           <input
             type="number"
             value={fromTokenAmount || ""}
-            onChange={(e) => calcOtherAmount(e.target.value, "to")}
+            onChange={(e) => calcOtherAmount(e.target.value)}
           />
           {fromTokenAmount && (
             <>

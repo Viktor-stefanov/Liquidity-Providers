@@ -15,12 +15,12 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     usdcMock = await deploy("UsdcMock", {
       from: deployer,
       log: true,
-      args: [18, 1],
+      args: [1, 1],
     }),
     usdtMock = await deploy("UsdtMock", {
       from: deployer,
       log: true,
-      args: [18, 1],
+      args: [1, 1],
     }),
     ethMock = await deploy("EthMock", {
       from: deployer,
@@ -44,6 +44,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
       ["UTMC", "UCMC", "ETH", "UTMC", "ETH", "UCMC"],
       pf.address,
     ],
-    gasLimit: 3 * 10 ** 6,
+  });
+  await deploy("ERC20ToERC20", {
+    from: deployer,
+    log: true,
+    args: [[usdt.address, usdc.address], ["UTMC", "UCMC"], pf.address],
   });
 };

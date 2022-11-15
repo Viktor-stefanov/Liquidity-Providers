@@ -6,6 +6,7 @@ module.exports = {
   networks: {
     localhost: {
       url: "http://127.0.0.1:8545/",
+      blockGasLimit: 10 ** 18,
     },
   },
   namedAccounts: {
@@ -18,7 +19,7 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 100,
+        runs: 10,
       },
     },
   },
