@@ -3,7 +3,7 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract UsdtContract is ERC20 {
-    constructor(address _to) ERC20("UsdtMockCoin", "UTMC") {
-        _mint(_to, 200000 ether);
+    constructor(address[] memory _to) ERC20("UsdcMockCoin", "UCMC") {
+        for (uint128 i = 0; i < _to.length; i++) _mint(_to[i], 100000 ether);
     }
 }

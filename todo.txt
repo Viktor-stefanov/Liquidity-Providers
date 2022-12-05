@@ -1,0 +1,16 @@
+Two possible ways to approach withdrawing shares.
+1. In ubalanced withdraw accept it and return an unbalanced output
+2. Return a balaned output. -> Swap Tokens.
+
+How to Swap Tokens inside a pool?
+1. Just like a normal swap !DOWNSIDE: losing money
+2. Find a suitable pool to make a more appealing swap. !DOWNSIDE: lots of work
+
+TODO:
+1. Figure out how to deal with 0.33333, 0.66666... values in solidity. Round up?
+
+??? What if the withdraw request is not 50/50 but the user deposited his tokens at 50/50
+
+Side. Find object with same own properties in array of objects.
+
+TEST whether multiplying by 10**18 a coefficient and then dividing by 10**18 the result has any effect on precision.

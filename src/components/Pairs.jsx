@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { getAllTokens, getRelativePrice, swapTokens } from "../utils/contracts";
+import { getAllPools, getRelativePrice, swapTokens } from "../utils/contracts";
 
 export default function Pairs() {
-  const [tokens, setTokens] = useState([]);
+  const [pools, setPools] = useState([]);
+  const [tokens, setTokens] = useState(null);
   const [fromToken, setFromToken] = useState(null);
   const [toToken, setToToken] = useState(null);
   const [fromTokenAmount, setFromTokenAmount] = useState(null);
   const [toTokenAmount, setToTokenAmount] = useState(null);
 
   useEffect(() => {
-    async function getTokens() {
-      setTokens(await getAllTokens());
+    async function getPools() {
+      setPools(await getAllPools());
     }
-    getTokens();
+    getPools();
   }, []);
 
   async function calcOtherAmount(amount) {
@@ -22,7 +23,9 @@ export default function Pairs() {
       return;
     }
 
-    const equivalentAmount = await getRelativePrice(fromToken, toToken, amount);
+    const pool = tokens.join("/"),
+      equivalentAmount = await getRelativePrice(pool, fromToken, toToken, amount);
+
     setFromTokenAmount(amount);
     setToTokenAmount(equivalentAmount);
   }
@@ -34,38 +37,52 @@ export default function Pairs() {
   return (
     <>
       <h3>Swap Interface </h3>
-      <p>Select token to swap:</p>
-      <select defaultValue={"init"} onChange={(e) => setFromToken(e.target.value)}>
+      <p>Select a pool:</p>
+      <select defaultValue={"init"} onChange={(e) => setTokens(e.target.value.split("/"))}>
         <option value="init" disabled></option>
-        {tokens.map((token, index) => (
+        {pools.map((token, index) => (
           <option value={token} key={index}>
             {token}
           </option>
         ))}
       </select>
-      <p>Select token to receive:</p>
-      <select defaultValue={"init"} onChange={(e) => setToToken(e.target.value)}>
-        <option value="init" disabled></option>
-        {tokens.map((token, index) => (
-          <option value={token} key={index}>
-            {token}
-          </option>
-        ))}
-      </select>
-      {fromToken && toToken && (
+
+      {tokens && (
         <>
-          <p>Enter amount of {fromToken}</p>
-          <input
-            type="number"
-            value={fromTokenAmount || ""}
-            onChange={(e) => calcOtherAmount(e.target.value)}
-          />
-          {fromTokenAmount && (
+          <p>Select token to swap:</p>
+          <select defaultValue={"init"} onChange={(e) => setFromToken(e.target.value)}>
+            <option value="init" disabled></option>
+            {tokens.map((token, index) => (
+              <option value={token} key={index}>
+                {token}
+              </option>
+            ))}
+          </select>
+          <p>Select token to receive:</p>
+          <select defaultValue={"init"} onChange={(e) => setToToken(e.target.value)}>
+            <option value="init" disabled></option>
+            {tokens.map((token, index) => (
+              <option value={token} key={index}>
+                {token}
+              </option>
+            ))}
+          </select>
+          {fromToken && toToken && (
             <>
-              <p>
-                {fromTokenAmount} {fromToken} trades for {toTokenAmount} {toToken}
-              </p>
-              <button onClick={exchangeTokens}>Swap</button>
+              <p>Enter amount of {fromToken}</p>
+              <input
+                type="number"
+                value={fromTokenAmount || ""}
+                onChange={(e) => calcOtherAmount(e.target.value)}
+              />
+              {fromTokenAmount && (
+                <>
+                  <p>
+                    {fromTokenAmount} {fromToken} trades for {toTokenAmount} {toToken}
+                  </p>
+                  <button onClick={exchangeTokens}>Swap</button>
+                </>
+              )}
             </>
           )}
         </>

@@ -102,11 +102,13 @@ async function ethToERC20Swap(ethAmount, token) {
 async function ERC20ToEthSwap(token, tokenAmount) {
   try {
     const tokenContract = token === "UCMC" ? usdcContract : token === "UTMC" ? usdtContract : null,
+      tokenInWei = ethers.utils.parseEther(tokenAmount),
+      pool = `ETH/${token}`,
       user = await tokenContract.signer.getAddress();
-    if ((await tokenContract.allowance(ethToERC20Contract.address, user)) < tokenAmount)
-      await tokenContract.approve(ethToERC20Contract.address, tokenAmount);
+    if ((await tokenContract.allowance(ethToERC20Contract.address, user)) < tokenInWei)
+      await tokenContract.approve(ethToERC20Contract.address, tokenInWei);
 
-    await ethToERC20Contract.ERC20ToEthSwap(ethMock.address, tokenContract.address, tokenAmount);
+    await ethToERC20Contract.ERC20ToEthSwap(pool, tokenContract.address, tokenInWei);
     return true;
   } catch (err) {
     console.log(`Error on swapping ERC20 for ETH. ${err}`);
@@ -148,15 +150,10 @@ async function swapTokens(fromToken, fromAmount, toToken) {
   }
 }
 
-async function getEthToERC20Price(token, ethAmount, ethToERC20) {
-  const pair = `ETH/${token}`,
-    equivalentAmount = ethers.utils.formatEther(
-      await ethToERC20Contract.getRelativePrice(
-        pair,
-        ethers.utils.parseEther(ethAmount),
-        ethToERC20
-      )
-    );
+async function getEthToERC20Price(pool, ethAmount, ethToERC20) {
+  const equivalentAmount = ethers.utils.formatEther(
+    await ethToERC20Contract.getRelativePrice(pool, ethers.utils.parseEther(ethAmount), ethToERC20)
+  );
 
   return equivalentAmount;
 }
@@ -176,30 +173,18 @@ async function getERC20ToERC20Price(fromToken, toToken, amount) {
   return equivalentAmount;
 }
 
-async function getRelativePrice(fromToken, toToken, fromAmount) {
+async function getRelativePrice(pool, fromToken, toToken, fromAmount) {
   if (fromToken === "ETH" || toToken === "ETH") {
-    const token = fromToken === "ETH" ? toToken : fromToken,
-      ethToERC20 = fromToken === "ETH";
-    return await getEthToERC20Price(token, fromAmount, ethToERC20);
-  } else return await getERC20ToERC20Price(fromToken, toToken, fromAmount);
+    return await getEthToERC20Price(pool, fromAmount, fromToken === "ETH");
+  } else return await getERC20ToERC20Price(pool, fromToken, toToken, fromAmount);
 }
 
 async function getEthToERC20Deposit(token, amount, ethToERC20) {
   const pair = `ETH/${token}`;
 
-  return parseFloat(
-    ethers.utils.formatEther(
-      (
-        await ethToERC20Contract.estimateEthToERC20Deposit(
-          pair,
-          ethers.utils.parseEther(amount),
-          ethToERC20
-        )
-      )
-        .div(10 ** 8)
-        .div(10 ** 8)
-    )
-  ).toFixed(10);
+  return (
+    await ethToERC20Contract.estimateDeposit(pair, ethers.utils.parseEther(amount), ethToERC20)
+  ).map((amount) => parseFloat(ethers.utils.formatEther(amount)).toFixed(5));
 }
 
 async function getERC20ToERC20Deposit(fromToken, toToken, amount, t1ToT2) {
@@ -218,10 +203,8 @@ async function estimateBalancedDeposit(fromToken, toToken, amount, inputDirectio
     const token = fromToken === "ETH" ? toToken : fromToken,
       ethToERC20 =
         (inputDirection === "fromTo" && fromToken === "ETH") ||
-        (inputDirection === "toFrom" && toToken === "ETH")
-          ? true
-          : false;
-    return await getEthToERC20Deposit(token, amount, ethToERC20);
+        (inputDirection === "toFrom" && toToken === "ETH");
+    return await getEthToERC20Deposit(token, amount, ethToERC20, fromToken === "fromTo");
   } else
     return await getERC20ToERC20Deposit(fromToken, toToken, amount, inputDirection === "fromTo");
 }
@@ -244,11 +227,43 @@ async function getEthToERC20Pools() {
   return pairs;
 }
 
+async function withdraw(pool, amount, ethInPair) {
+  await ethToERC20Contract.withdrawShare(
+    pool,
+    ethers.utils.parseEther(amount.toString()),
+    ethInPair
+  );
+}
+
+async function estimateWithdrawAmounts(pool, tokenAmount, ethToERC) {
+  const res = (
+    await ethToERC20Contract.estimateWithdrawAmounts(
+      pool,
+      ethers.utils.parseEther(tokenAmount),
+      ethToERC
+    )
+  ).map((amount) => parseFloat(ethers.utils.formatEther(amount)).toFixed(5));
+
+  return res;
+}
+
+async function getUserDeposits(pool) {
+  return (await ethToERC20Contract.getUserDeposits(pool)).map((amount) =>
+    ethers.utils.formatEther(amount)
+  );
+}
+
+async function getPoolDeposits(pool) {
+  return (await ethToERC20Contract.getPoolDeposits(pool)).map((amount) =>
+    ethers.utils.formatEther(amount)
+  );
+}
+
 async function getAllTokens() {
   let tokens = new Set();
-  const contracts = await ethToERC20Contract.getContracts();
-  for (let contract of contracts) {
-    const [tok1, tok2] = contract.split("/");
+  const pools = await ethToERC20Contract.getPools();
+  for (let pool of pools) {
+    const [tok1, tok2] = pool.split("/");
 
     tokens.add(tok1);
     tokens.add(tok2);
@@ -257,36 +272,24 @@ async function getAllTokens() {
   return Array.from(tokens);
 }
 
-async function getTokenPrices() {
-  // TODO: CLEAN THIS MESS UP!!!
-  let tokens = [];
-  const pairs = await ethToERC20Contract.getContracts();
-  for (let pair of pairs) {
-    const pool = await ethToERC20Contract.getPool(pair),
-      tok1Price = parseInt(await priceFeedContract.getPrice(pool[2])),
-      tok2Price = parseInt(await priceFeedContract.getPrice(pool[3])),
-      [tok1Symbol, tok2Symbol] = pair.split("/");
+async function getAllPools() {
+  const ethPools = await ethToERC20Contract.getPools(),
+    ercPools = await erc20ToErc20Contract.getPools();
 
-    let t1In, t2In;
-    for (let tokenPair of tokens) {
-      if (tokenPair.name === tok1Symbol) t1In = true;
-      if (tokenPair.name === tok2Symbol) t2In = true;
-    }
-
-    if (!t1In) tokens.push({ name: tok1Symbol, price: tok1Price });
-    if (!t2In) tokens.push({ name: tok2Symbol, price: tok2Price });
-  }
-
-  return tokens;
+  return Array.from(ethPools).concat(Array.from(ercPools));
 }
 
 export {
+  withdraw,
+  estimateWithdrawAmounts,
+  getPoolDeposits,
+  getUserDeposits,
   provideLiquidity,
   getEthToERC20Pools,
-  getTokenPrices,
   ethToERC20Swap,
   getRelativePrice,
   getAllTokens,
   swapTokens,
   estimateBalancedDeposit,
+  getAllPools,
 };

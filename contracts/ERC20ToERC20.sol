@@ -7,7 +7,7 @@ import "hardhat/console.sol";
 contract ERC20ToERC20 is ERC20 {
     PriceFeed priceFeed;
     mapping(string => pairPool) tokenPools;
-    string[] contracts;
+    string[] pools;
     uint256 constant precisionMult = 10**16;
 
     struct pairPool {
@@ -52,7 +52,7 @@ contract ERC20ToERC20 is ERC20 {
                 _tokenSymbols[i + 1]
             );
 
-            contracts.push(pair);
+            pools.push(pair);
 
             tokenPools[pair] = pairPool(
                 _tokenSymbols[i],
@@ -201,8 +201,8 @@ contract ERC20ToERC20 is ERC20 {
         }
     }
 
-    function getContracts() external view returns (string[] memory) {
-        return contracts;
+    function getPools() external view returns (string[] memory) {
+        return pools;
     }
 
     function getPool(string memory _pair)

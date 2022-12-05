@@ -1,4 +1,0 @@
-1. Get relative deposit bug.
-2. Rounding error for UCMC - ETH. 
-
-? Can you deplete a pair pool - no it becomes exponentially harder as one token depletes?

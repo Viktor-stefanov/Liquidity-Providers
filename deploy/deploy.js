@@ -5,12 +5,22 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const usdc = await deploy("UsdcContract", {
       from: deployer,
       log: true,
-      args: ["0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199"],
+      args: [
+        [
+          "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+          "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
+        ],
+      ],
     }),
     usdt = await deploy("UsdtContract", {
       from: deployer,
       log: true,
-      args: ["0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199"],
+      args: [
+        [
+          "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+          "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
+        ],
+      ],
     }),
     usdcMock = await deploy("UsdcMock", {
       from: deployer,
@@ -40,8 +50,8 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     from: deployer,
     log: true,
     args: [
-      [usdt.address, usdc.address, ethMock.address, usdt.address, ethMock.address, usdc.address],
-      ["UTMC", "UCMC", "ETH", "UTMC", "ETH", "UCMC"],
+      [ethMock.address, usdt.address, ethMock.address, usdc.address],
+      ["ETH", "UTMC", "ETH", "UCMC"],
       pf.address,
     ],
   });

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { provideLiquidity, getTokenPrices, estimateBalancedDeposit } from "../utils/contracts";
+import { provideLiquidity, getAllTokens, estimateBalancedDeposit } from "../utils/contracts";
+import RemoveLiquidity from "./RemoveLiquidity";
 
 export default function Pool() {
   const [pool, setPool] = useState(false);
+  const [remove, setRemove] = useState(false);
   const [marketData, setMarketData] = useState([]);
   const [fromToken, setFromToken] = useState(null);
   const [fromTokenAmount, setFromTokenAmount] = useState(null);
@@ -11,7 +13,7 @@ export default function Pool() {
   const [depositing, setDepositing] = useState(false);
 
   async function getTokensData() {
-    setMarketData(await getTokenPrices());
+    setMarketData(await getAllTokens());
   }
 
   useEffect(() => {
@@ -25,13 +27,21 @@ export default function Pool() {
       return;
     }
 
-    const otherAmount = await estimateBalancedDeposit(fromToken, toToken, amount, inputDirection);
+    const [fromAmount, toAmount] = await estimateBalancedDeposit(
+      fromToken,
+      toToken,
+      amount,
+      inputDirection
+    );
+
     if (inputDirection === "fromTo") {
       setFromTokenAmount(amount);
-      setToTokenAmount(otherAmount);
+      if (fromToken === "ETH") setToTokenAmount(toAmount);
+      else setToTokenAmount(fromAmount);
     } else {
       setToTokenAmount(amount);
-      setFromTokenAmount(otherAmount);
+      if (fromToken === "ETH") setFromTokenAmount(fromAmount);
+      else setFromTokenAmount(toAmount);
     }
   }
 
@@ -45,7 +55,8 @@ export default function Pool() {
 
   return (
     <>
-      <button onClick={() => setPool(true)}>Become a Liquidity Provider</button>
+      <button onClick={() => setPool(true)}>Provide Liquidity</button>
+      <button onClick={() => setRemove(true)}>Remove Liquidity</button>
       <br />
       <br />
 
@@ -58,9 +69,9 @@ export default function Pool() {
             disabled={depositing}
           >
             <option value="init" disabled></option>
-            {marketData.map((TokenData, index) => (
-              <option value={TokenData.name} key={index}>
-                {TokenData.name}
+            {marketData.map((token, index) => (
+              <option value={token} key={index}>
+                {token}
               </option>
             ))}
           </select>
@@ -72,9 +83,9 @@ export default function Pool() {
             disabled={depositing}
           >
             <option value="init" disabled></option>
-            {marketData.map((TokenData, index) => (
-              <option value={TokenData.name} key={index}>
-                {TokenData.name}
+            {marketData.map((token, index) => (
+              <option value={token} key={index}>
+                {token}
               </option>
             ))}
           </select>
@@ -113,6 +124,8 @@ export default function Pool() {
           )}
         </div>
       )}
+
+      {remove && <RemoveLiquidity />}
     </>
   );
 }
