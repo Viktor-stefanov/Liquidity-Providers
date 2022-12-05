@@ -31,10 +31,19 @@ export default function RemoveLiquidity() {
   }
 
   async function calcWithdrawAmounts(idx, amount) {
-    if (amount === "") {
-      setWdAmounts(wdAmounts.map(() => ""));
-      setInputAmounts(inputAmounts.map(() => ""));
-    } else if (parseFloat(amount) > deposits.user[idx]) return;
+    const parsedAmount = parseFloat(amount);
+    if (Number.isNaN(parsedAmount) || parsedAmount === 0 || parsedAmount > deposits.user[idx]) {
+      if (
+        (Number.isNaN(parsedAmount) && [".", ""].includes(amount)) ||
+        parseFloat(amount) <= parseFloat(deposits.user[idx])
+      ) {
+        const newInputAmounts = [];
+        newInputAmounts[idx] = amount;
+        setInputAmounts(newInputAmounts);
+      }
+      if (parsedAmount === 0 || amount === "") setWdAmounts([]);
+      return;
+    }
 
     const newWdAmounts = await estimateWithdrawAmounts(
         tokens.join("/"),
@@ -49,16 +58,21 @@ export default function RemoveLiquidity() {
   }
 
   async function withdrawTokens() {
+    setInTx(true);
+    setInputAmounts([]);
     const pool = tokens.join("/");
     let tokenAmount;
     for (let el of inputAmounts) if (el) tokenAmount = el;
     await withdraw(pool, tokenAmount, Boolean(inputAmounts[0]));
+    setDeposits({ pool: await getPoolDeposits(pool), user: await getUserDeposits(pool) });
+    setWdAmounts([]);
+    setInTx(false);
   }
 
   return (
     <>
       <select onChange={(e) => onPoolSelect(e.target.value)} defaultValue="init" disabled={inTx}>
-        <option value="init" disabled></option>
+        <option value="init" disabled={inTx}></option>
         {pools.map((pool, index) => (
           <option value={pool} key={index}>
             {pool}
@@ -77,6 +91,7 @@ export default function RemoveLiquidity() {
             <input
               value={inputAmounts[index] || ""}
               onInput={(e) => calcWithdrawAmounts(index, e.target.value)}
+              disabled={inTx}
             />
           </div>
         ))}
@@ -93,9 +108,12 @@ export default function RemoveLiquidity() {
           ))}
 
           <br />
-          <button onClick={withdrawTokens}>Withdraw</button>
+          <button onClick={withdrawTokens} disabled={inTx}>
+            Withdraw
+          </button>
         </>
       )}
+      {inTx && <p>Please open you wallet and accept the transaction.</p>}
     </>
   );
 }

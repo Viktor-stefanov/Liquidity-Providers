@@ -184,7 +184,7 @@ async function getEthToERC20Deposit(token, amount, ethToERC20) {
 
   return (
     await ethToERC20Contract.estimateDeposit(pair, ethers.utils.parseEther(amount), ethToERC20)
-  ).map((amount) => parseFloat(ethers.utils.formatEther(amount)).toFixed(5));
+  ).map((amount) => parseFloat(ethers.utils.formatEther(amount)));
 }
 
 async function getERC20ToERC20Deposit(fromToken, toToken, amount, t1ToT2) {
@@ -209,30 +209,14 @@ async function estimateBalancedDeposit(fromToken, toToken, amount, inputDirectio
     return await getERC20ToERC20Deposit(fromToken, toToken, amount, inputDirection === "fromTo");
 }
 
-async function getEthToERC20Pools() {
-  let pairs = [];
-  const contracts = await ethToERC20Contract.getContracts();
-  for (let contract of contracts) {
-    const contractPool = await ethToERC20Contract.getPool(contract);
-
-    pairs.push({
-      from: "ETH",
-      to: contractPool[0],
-      poolName: `ETH/${contractPool[0]}`,
-      ethPool: ethers.utils.formatEther(contractPool[1]),
-      tokenPool: parseInt(contractPool[2]),
-    });
-  }
-
-  return pairs;
-}
-
 async function withdraw(pool, amount, ethInPair) {
-  await ethToERC20Contract.withdrawShare(
-    pool,
-    ethers.utils.parseEther(amount.toString()),
-    ethInPair
-  );
+  await (
+    await ethToERC20Contract.withdrawShare(
+      pool,
+      ethers.utils.parseEther(amount.toString()),
+      ethInPair
+    )
+  ).wait();
 }
 
 async function estimateWithdrawAmounts(pool, tokenAmount, ethToERC) {
@@ -243,6 +227,7 @@ async function estimateWithdrawAmounts(pool, tokenAmount, ethToERC) {
       ethToERC
     )
   ).map((amount) => parseFloat(ethers.utils.formatEther(amount)).toFixed(5));
+  console.log(tokenAmount, ethToERC);
 
   return res;
 }
@@ -285,7 +270,6 @@ export {
   getPoolDeposits,
   getUserDeposits,
   provideLiquidity,
-  getEthToERC20Pools,
   ethToERC20Swap,
   getRelativePrice,
   getAllTokens,

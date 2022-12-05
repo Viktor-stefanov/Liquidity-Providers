@@ -53,6 +53,8 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
       [ethMock.address, usdt.address, ethMock.address, usdc.address],
       ["ETH", "UTMC", "ETH", "UCMC"],
       pf.address,
+      ethers.utils.parseEther("0.02"),
+      18,
     ],
   });
   await deploy("ERC20ToERC20", {

@@ -8,6 +8,7 @@ export default function Pairs() {
   const [toToken, setToToken] = useState(null);
   const [fromTokenAmount, setFromTokenAmount] = useState(null);
   const [toTokenAmount, setToTokenAmount] = useState(null);
+  const [swapping, setSwapping] = useState(null);
 
   useEffect(() => {
     async function getPools() {
@@ -31,14 +32,20 @@ export default function Pairs() {
   }
 
   async function exchangeTokens() {
+    setSwapping(true);
     await swapTokens(fromToken, fromTokenAmount, toToken, toTokenAmount);
+    setSwapping(false);
   }
 
   return (
     <>
       <h3>Swap Interface </h3>
       <p>Select a pool:</p>
-      <select defaultValue={"init"} onChange={(e) => setTokens(e.target.value.split("/"))}>
+      <select
+        defaultValue={"init"}
+        onChange={(e) => setTokens(e.target.value.split("/"))}
+        disabled={swapping}
+      >
         <option value="init" disabled></option>
         {pools.map((token, index) => (
           <option value={token} key={index}>
@@ -50,7 +57,11 @@ export default function Pairs() {
       {tokens && (
         <>
           <p>Select token to swap:</p>
-          <select defaultValue={"init"} onChange={(e) => setFromToken(e.target.value)}>
+          <select
+            defaultValue={"init"}
+            onChange={(e) => setFromToken(e.target.value)}
+            disabled={swapping}
+          >
             <option value="init" disabled></option>
             {tokens.map((token, index) => (
               <option value={token} key={index}>
@@ -59,7 +70,11 @@ export default function Pairs() {
             ))}
           </select>
           <p>Select token to receive:</p>
-          <select defaultValue={"init"} onChange={(e) => setToToken(e.target.value)}>
+          <select
+            defaultValue={"init"}
+            onChange={(e) => setToToken(e.target.value)}
+            disabled={swapping}
+          >
             <option value="init" disabled></option>
             {tokens.map((token, index) => (
               <option value={token} key={index}>
@@ -74,19 +89,23 @@ export default function Pairs() {
                 type="number"
                 value={fromTokenAmount || ""}
                 onChange={(e) => calcOtherAmount(e.target.value)}
+                disabled={swapping}
               />
               {fromTokenAmount && (
                 <>
                   <p>
                     {fromTokenAmount} {fromToken} trades for {toTokenAmount} {toToken}
                   </p>
-                  <button onClick={exchangeTokens}>Swap</button>
+                  <button onClick={exchangeTokens} disabled={swapping}>
+                    Swap
+                  </button>
                 </>
               )}
             </>
           )}
         </>
       )}
+      {swapping && <p>Please open your wallet app and wait for the transaction to complete.</p>}
     </>
   );
 }
