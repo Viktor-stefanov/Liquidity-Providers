@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import priceFeed from "../../deployments/localhost/PriceFeed.json";
+import diamond from "../../deployments/localhost/Diamond.json";
 import usdtMock from "../../deployments/localhost/UsdtMock.json";
 import usdcMock from "../../deployments/localhost/UsdcMock.json";
 import ethMock from "../../deployments/localhost/EthMock.json";
@@ -20,8 +21,8 @@ async function instantiateContracts() {
     usdcAggregator = new ethers.Contract(usdcMock.address, usdcMock.abi, signer),
     ethAggregator = new ethers.Contract(ethMock.address, ethMock.abi, signer),
     priceFeedContract = new ethers.Contract(priceFeed.address, priceFeed.abi, signer),
-    ethToERC20Contract = new ethers.Contract(ethToERC20.address, ethToERC20.abi, web3signer),
-    erc20ToErc20Contract = new ethers.Contract(erc20ToErc20.address, erc20ToErc20.abi, web3signer),
+    ethToERC20Contract = new ethers.Contract(diamond.address, ethToERC20.abi, web3signer),
+    erc20ToErc20Contract = new ethers.Contract(diamond.address, erc20ToErc20.abi, web3signer),
     usdcContract = new ethers.Contract(usdc.address, usdc.abi, web3signer),
     usdtContract = new ethers.Contract(usdt.address, usdt.abi, web3signer);
 

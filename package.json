@@ -3,7 +3,7 @@
   "scripts": {
     "serve": "vite serve",
     "deploy": "hardhat deploy --network localhost",
-    "reset-deploy": "hardhat deploy --network localhost --reset"
+    "reset-deploy": "hardhat deploy --network localhost --reset "
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",

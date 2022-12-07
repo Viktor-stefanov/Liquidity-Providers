@@ -1,3 +1,5 @@
+const { ethers } = require("hardhat");
+
 module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
@@ -46,20 +48,34 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
       ],
     });
 
-  await deploy("EthToERC20", {
+  const ethToERC = await deploy("EthToERC20", {
+      from: deployer,
+      log: true,
+      args: [],
+    }),
+    ercToErc = await deploy("ERC20ToERC20", {
+      from: deployer,
+      log: true,
+      args: [[usdt.address, usdc.address], ["UTMC", "UCMC"], pf.address],
+    }),
+    diamondInit = await deploy("DiamondInit", { from: deployer, log: true });
+
+  const initInterface = new ethers.utils.Interface(diamondInit.abi);
+  const calldata = initInterface.encodeFunctionData("ethToERCInit", [
+    [ethMock.address, usdt.address, ethMock.address, usdc.address],
+    ["ETH", "UTMC", "ETH", "UCMC"],
+    pf.address,
+    ethers.utils.parseEther("0.02"),
+    18,
+  ]);
+
+  const interface = new ethers.utils.Interface(ethToERC.abi);
+  const functionSelectors = Object.keys(interface.functions).map((f) => interface.getSighash(f));
+  const diamondCut = [ethToERC.address, 0, functionSelectors];
+
+  await deploy("Diamond", {
     from: deployer,
     log: true,
-    args: [
-      [ethMock.address, usdt.address, ethMock.address, usdc.address],
-      ["ETH", "UTMC", "ETH", "UCMC"],
-      pf.address,
-      ethers.utils.parseEther("0.02"),
-      18,
-    ],
-  });
-  await deploy("ERC20ToERC20", {
-    from: deployer,
-    log: true,
-    args: [[usdt.address, usdc.address], ["UTMC", "UCMC"], pf.address],
+    args: [[diamondCut], [deployer, diamondInit.address, calldata]],
   });
 };
