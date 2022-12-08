@@ -33,12 +33,10 @@ export default function ProvideLiquidity() {
 
     if (inputDirection === "fromTo") {
       setFromTokenAmount(amount);
-      if (fromToken === "ETH") setToTokenAmount(toAmount);
-      else setToTokenAmount(fromAmount);
+      setToTokenAmount(toAmount);
     } else {
       setToTokenAmount(amount);
-      if (fromToken === "ETH") setFromTokenAmount(fromAmount);
-      else setFromTokenAmount(toAmount);
+      setFromTokenAmount(fromAmount);
     }
   }
 

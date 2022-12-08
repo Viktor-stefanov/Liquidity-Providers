@@ -46,9 +46,8 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         [usdc.address, usdt.address, ethMock.address],
         [usdcMock.address, usdtMock.address, ethMock.address],
       ],
-    });
-
-  const ethToERC = await deploy("EthToERC20", {
+    }),
+    ethToERC = await deploy("EthToERC20", {
       from: deployer,
       log: true,
       args: [],
@@ -56,26 +55,34 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     ercToErc = await deploy("ERC20ToERC20", {
       from: deployer,
       log: true,
-      args: [[usdt.address, usdc.address], ["UTMC", "UCMC"], pf.address],
+      args: [],
     }),
     diamondInit = await deploy("DiamondInit", { from: deployer, log: true });
 
   const initInterface = new ethers.utils.Interface(diamondInit.abi);
   const calldata = initInterface.encodeFunctionData("ethToERCInit", [
-    [ethMock.address, usdt.address, ethMock.address, usdc.address],
-    ["ETH", "UTMC", "ETH", "UCMC"],
+    [ethMock.address, usdt.address, ethMock.address, usdc.address, usdt.address, usdc.address],
+    ["ETH", "UTMC", "ETH", "UCMC", "UTMC", "UCMC"],
     pf.address,
     ethers.utils.parseEther("0.02"),
     18,
   ]);
 
-  const interface = new ethers.utils.Interface(ethToERC.abi);
-  const functionSelectors = Object.keys(interface.functions).map((f) => interface.getSighash(f));
-  const diamondCut = [ethToERC.address, 0, functionSelectors];
+  const ethInterface = new ethers.utils.Interface(ethToERC.abi),
+    ethFunctions = Object.keys(ethInterface.functions),
+    ethToERCSelectors = ethFunctions.map((f) => ethInterface.getSighash(f)),
+    ercInterface = new ethers.utils.Interface(ercToErc.abi),
+    ercFunctions = Object.keys(ercInterface.functions).filter((f) => !ethFunctions.includes(f)),
+    ercToErcSelectors = ercFunctions.map((f) => ercInterface.getSighash(f));
+
+  const diamondCuts = [
+    [ethToERC.address, 0, ethToERCSelectors],
+    [ercToErc.address, 0, ercToErcSelectors],
+  ];
 
   await deploy("Diamond", {
     from: deployer,
     log: true,
-    args: [[diamondCut], [deployer, diamondInit.address, calldata]],
+    args: [diamondCuts, [deployer, diamondInit.address, calldata]],
   });
 };

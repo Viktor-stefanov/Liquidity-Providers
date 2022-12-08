@@ -13,6 +13,7 @@ export default function RemoveLiquidity() {
   const [inputAmounts, setInputAmounts] = useState([]);
   const [deposits, setDeposits] = useState({});
   const [wdAmounts, setWdAmounts] = useState([]);
+  const [fromToken, setFromToken] = useState(null);
   const [inTx, setInTx] = useState(false);
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export default function RemoveLiquidity() {
     const newWdAmounts = await estimateWithdrawAmounts(
         tokens.join("/"),
         amount,
-        tokens[idx] === "ETH"
+        tokens[0] === tokens[idx]
       ),
       newInputAmounts = [];
     newInputAmounts[idx] = amount;
@@ -63,10 +64,15 @@ export default function RemoveLiquidity() {
     const pool = tokens.join("/");
     let tokenAmount;
     for (let el of inputAmounts) if (el) tokenAmount = el;
-    await withdraw(pool, tokenAmount, Boolean(inputAmounts[0]));
+    await (await withdraw(pool, fromToken, tokenAmount)).wait();
     setDeposits({ pool: await getPoolDeposits(pool), user: await getUserDeposits(pool) });
     setWdAmounts([]);
     setInTx(false);
+  }
+
+  function onInputAmountChange(index, amount) {
+    calcWithdrawAmounts(index, amount);
+    setFromToken(tokens[index]);
   }
 
   return (
@@ -90,7 +96,7 @@ export default function RemoveLiquidity() {
             <span>Enter amount of {tokens[index]} to withdraw: </span>
             <input
               value={inputAmounts[index] || ""}
-              onInput={(e) => calcWithdrawAmounts(index, e.target.value)}
+              onInput={(e) => onInputAmountChange(index, e.target.value)}
               disabled={inTx}
             />
           </div>
