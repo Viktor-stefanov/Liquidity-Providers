@@ -109,7 +109,7 @@ async function ERC20ToEthSwap(token, tokenAmount) {
     if ((await tokenContract.allowance(ethToERC20Contract.address, user)) < tokenInWei)
       await tokenContract.approve(ethToERC20Contract.address, tokenInWei);
 
-    await ethToERC20Contract.ERC20ToEthSwap(pool, tokenContract.address, tokenInWei);
+    await ethToERC20Contract.erc20ToEthSwap(pool, tokenContract.address, tokenInWei);
     return true;
   } catch (err) {
     console.log(`Error on swapping ERC20 for ETH. ${err}`);

@@ -74,7 +74,7 @@ contract EthToERC20 is ERC20, Modifiers {
         ERC20(pool.token2Con).transfer(msg.sender, tokensOut);
     }
 
-    function Erc20ToEthSwap(
+    function erc20ToEthSwap(
         string memory _pair,
         address _tokenContract,
         uint256 _tokenAmount
